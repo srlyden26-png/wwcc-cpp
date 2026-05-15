@@ -4,13 +4,11 @@
 #include <string>
 #include <vector>
 #include "Book.h"
-#include "Patron.h"
 
 class Library {
 private:
     std::string name;
     std::vector<Book> catalog;
-    std::vector<Patron> patrons;
 
     // Helper for case-insensitive conversions
     std::string toLowerCase(const std::string& str) const;
@@ -19,7 +17,6 @@ public:
     Library(const std::string& name);
     
     void addBook(const Book& book);
-    void addPatron(const Patron& patron);
     
     void displayCatalog() const;
     void searchByAuthor(const std::string& authorName) const;
