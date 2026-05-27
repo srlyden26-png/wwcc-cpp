@@ -1,0 +1,238 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <fstream>
+#include <iomanip>
+using namespace std;
+
+enum class Department { ENGINEERING, SALES, HR, OPERATIONS };
+
+constexpr double OVERTIME_THRESHOLD = 40.0;
+constexpr double OVERTIME_MULTIPLIER = 1.5;
+constexpr double MAX_WEEKLY_HOURS = 168.0;
+
+struct Employee {
+    string name;
+    Department dept;
+    // BUG: hourlyRate was defined as an int for the most part, right?! That in nerd res truncates fractional pay rates (e.g., 32.5 and 33.5).
+    double hourlyRate; 
+    double hoursWorked;
+};
+
+// Returns the display name for a department
+string deptName(Department d) {
+    switch (d) {
+        case Department::ENGINEERING: return "Engineering";
+        case Department::SALES:       return "Sales";
+        case Department::HR:          return "HR";
+        case Department::OPERATIONS:  return "Operations";
+        // BUG: Missing default path which triggers compiler warnings or undefined execution behavior.
+        // FIX: Added a default fallback route returning a safety string.
+        default:                      return "Unknown";
+    }
+}
+
+// Validate hours input — returns true if valid
+bool validHours(double hours) {
+    // BUG: The validation clause only caught numbers exceeding MAX_WEEKLY_HOURS, allowing invalid negative hours.
+    // FIX: Included an additional bound evaluation clause to reject any value less than 0.0.
+    if (hours < 0.0) {
+        cout << "Error: hours cannot be negative.\n";
+        return false;
+    }
+    if (hours > MAX_WEEKLY_HOURS) {
+        cout << "Error: hours cannot exceed " << MAX_WEEKLY_HOURS << "\n";
+        return false;
+    }
+    return true;
+}
+
+// Calculate weekly pay for one employee (with overtime)
+double calculatePay(const Employee& e) {
+    if (e.hoursWorked <= OVERTIME_THRESHOLD) {
+        return e.hoursWorked * e.hourlyRate;
+    } else {
+        // BUG: Overtime scale multiplier was incorrectly multiplied across ALL hours worked instead of excess hours.
+        // FIX: Isolated regular threshold hours from excess hours to correctly compound overtime earnings.
+        double regularPay = OVERTIME_THRESHOLD * e.hourlyRate;
+        double overtimeHours = e.hoursWorked - OVERTIME_THRESHOLD;
+        double overtimePay = overtimeHours * e.hourlyRate * OVERTIME_MULTIPLIER;
+        return regularPay + overtimePay;
+    }
+}
+
+// Display a single employee row
+void printEmployee(const Employee& e) {
+    // BUG: The print function was manually typecasting hourlyRate and calculated pay to int variables, chopping decimals.
+    // FIX: Replaced integer-casting string combinations with direct iostream formatting tools to preserve real values.
+    cout << left << setw(20) << e.name 
+         << setw(14) << deptName(e.dept) 
+         << right << setw(8) << fixed << setprecision(2) << e.hoursWorked << " hrs"
+         << setw(7) << "$" << setw(6) << fixed << setprecision(2) << e.hourlyRate << "/hr"
+         << setw(5) << "$" << setw(8) << fixed << setprecision(2) << calculatePay(e) << "\n";
+}
+
+// Display all employees
+void displayAll(const vector<Employee>& employees) {
+    cout << "\n=== Employee Time Report ===\n";
+    cout << left << setw(20) << "Name" << setw(14) << "Department" << right << setw(8) << "Hours" << setw(13) << "Rate" << setw(13) << "Pay" << "\n";
+    cout << string(68, '-') << "\n";
+    for (const auto& emp : employees) {
+        printEmployee(emp);
+    }
+}
+
+// Calculate total payroll cost
+double totalPayroll(const vector<Employee>& employees) {
+    // BUG: std::accumulate init identity parameter was integer 0, forcing truncation across vector accumulation steps.
+    // FIX: Adjusted identity parameter element to a double 0.0, enabling continuous floating point summation.
+    return accumulate(employees.begin(), employees.end(), 0.0,
+        [](double sum, const Employee& e) {
+            return sum + calculatePay(e);
+        });
+}
+
+// Feature 1: sortByHours
+// Sort employees by hours worked, most to least, then display a ranked list.
+void sortByHours(vector<Employee>& employees) {
+    sort(employees.begin(), employees.end(), [](const Employee& a, const Employee& b) {
+        return a.hoursWorked > b.hoursWorked;
+    });
+
+    cout << "\n=== Hours Ranking ===\n";
+    cout << left << setw(20) << "Name" << setw(14) << "Department" << right << setw(8) << "Hours" << setw(13) << "Rate" << setw(13) << "Pay" << "\n";
+    cout << string(68, '-') << "\n";
+    for (const auto& emp : employees) {
+        printEmployee(emp);
+    }
+}
+
+// Feature 2: getDepartmentStats
+// Display count, total hours, and average pay for employees in a given department.
+void getDepartmentStats(const vector<Employee>& employees, Department dept) {
+    cout << "\n=== " << deptName(dept) << " Department Stats ===\n";
+    vector<Employee> deptStaff;
+    
+    copy_if(employees.begin(), employees.end(), back_inserter(deptStaff), [dept](const Employee& e) {
+        return e.dept == dept;
+    });
+
+    if (deptStaff.empty()) {
+        cout << "No employees found in this department.\n";
+        return;
+    }
+
+    double totalHours = 0.0;
+    double totalPay = 0.0;
+    for (const auto& emp : deptStaff) {
+        totalHours += emp.hoursWorked;
+        totalPay += calculatePay(emp);
+    }
+    double avgPay = totalPay / deptStaff.size();
+
+    cout << "Employee Count:       " << deptStaff.size() << "\n"
+         << "Total Hours Worked:   " << fixed << setprecision(2) << totalHours << " hrs\n"
+         << "Average Weekly Pay:  $" << fixed << setprecision(2) << avgPay << "\n";
+}
+
+// Feature 3: exportPayrollReport
+// Write a payroll summary to filename grouped by department.
+void exportPayrollReport(const vector<Employee>& employees, const string& filename) {
+    ofstream outFile(filename);
+    if (!outFile) {
+        cerr << "Error: Could not open file " << filename << " for writing.\n";
+        return;
+    }
+
+    outFile << "==========================================\n";
+    outFile << "        WEEKLY PAYROLL BREAKDOWN          \n";
+    outFile << "==========================================\n\n";
+
+    vector<Department> depts = { 
+        Department::ENGINEERING, 
+        Department::SALES, 
+        Department::HR, 
+        Department::OPERATIONS 
+    };
+
+    for (const auto& currentDept : depts) {
+        vector<Employee> deptStaff;
+        copy_if(employees.begin(), employees.end(), back_inserter(deptStaff), [currentDept](const Employee& e) {
+            return e.dept == currentDept;
+        });
+
+        if (deptStaff.empty()) continue;
+
+        outFile << "[" << deptName(currentDept) << " Department]\n";
+        double deptSubtotal = 0.0;
+        
+        for (const auto& emp : deptStaff) {
+            double pay = calculatePay(emp);
+            deptSubtotal += pay;
+            outFile << "  - " << left << setw(22) << emp.name 
+                    << ": $" << right << setw(8) << fixed << setprecision(2) << pay << "\n";
+        }
+        outFile << "  " << string(32, '-') << "\n";
+        outFile << "  Subtotal:             $" << right << setw(8) << fixed << setprecision(2) << deptSubtotal << "\n\n";
+    }
+
+    outFile << "Total Active Payroll:   $" << right << setw(8) << fixed << setprecision(2) << totalPayroll(employees) << "\n";
+    
+    cout << "\nPayroll report saved to " << filename << "\n";
+}
+
+// Bonus Challenge: findHighEarners
+// Display only employees whose weekly pay strictly exceeds the provided threshold.
+void findHighEarners(const vector<Employee>& employees, double threshold) {
+    cout << "\n=== High Earners (Weekly Pay > $" << fixed << setprecision(2) << threshold << ") ===\n";
+    vector<Employee> highEarners;
+
+    copy_if(employees.begin(), employees.end(), back_inserter(highEarners), [threshold](const Employee& e) {
+        return calculatePay(e) > threshold;
+    });
+
+    if (highEarners.empty()) {
+        cout << "No employees earned above the target threshold.\n";
+    } else {
+        cout << left << setw(20) << "Name" << setw(14) << "Department" << right << setw(8) << "Hours" << setw(13) << "Rate" << setw(13) << "Pay" << "\n";
+        cout << string(68, '-') << "\n";
+        for (const auto& emp : highEarners) {
+            printEmployee(emp);
+        }
+    }
+}
+
+int main() {
+    vector<Employee> employees = {
+        {"Alice Chen",    Department::ENGINEERING, 42.00, 45.0}, // overtime
+        {"Bob Martinez",  Department::SALES,       28.00, 38.0},
+        {"Carol Singh",   Department::HR,          32.50, 35.0}, // fractional rate
+        {"David Park",    Department::ENGINEERING, 50.00, 38.0},
+        {"Emma Wilson",   Department::OPERATIONS,  29.00, 30.0},
+        {"Frank Torres",  Department::SALES,       44.50, 45.0}, // overtime & fractional rate
+        {"Grace Kim",     Department::HR,          33.50, 33.0}, // fractional rate
+        {"Henry Okafor",  Department::OPERATIONS,  55.00, 29.0}
+    };
+
+    cout << "=== HR Time Tracker ===\n";
+
+    // Validate sample inputs
+    cout << "\nValidating hours entry -5: " << (validHours(-5) ? "valid" : "invalid") << "\n";
+    cout << "Validating hours entry 45: " << (validHours(45) ? "valid" : "invalid") << "\n";
+
+    // Regular tracking and total breakdown evaluations
+    displayAll(employees);
+    cout << "\nTotal payroll this week: $" << fixed << setprecision(2) << totalPayroll(employees) << "\n";
+
+    // Feature Implementations
+    sortByHours(employees);
+    getDepartmentStats(employees, Department::ENGINEERING);
+    exportPayrollReport(employees, "payroll_report.txt");
+    
+    // Bonus Challenge execution
+    findHighEarners(employees, 1800.00);
+
+    return 0;
+}
