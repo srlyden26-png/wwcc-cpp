@@ -65,7 +65,6 @@ int main() {
 
     cout << students.size() << " students loaded." << endl << endl;
 
-    // --- Write report ---
     // BUG 3: File I/O — output file opened in overwrite mode; instructions state it should preserve previous runs by appending.
     // FIX: Added 'ios::app' flag inside the ofstream declartion to safely open the file stream in append mode.
     ofstream outFile("grade_report.txt", ios::app); 
