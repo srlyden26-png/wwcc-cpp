@@ -1,0 +1,8 @@
+#include <iostream>
+#include <vector>
+
+// Function declaration is here
+int getMarbleSequenceValue(int marbleNumber);
+
+int main() {
+    //Example input: 
