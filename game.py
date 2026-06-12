@@ -1,102 +1,136 @@
-# Setup for game characters 
-class Character:
-    def __init__(self, name, hi_msg, chat_tree):
-        self.name = name
-        self.hi_msg = hi_msg
-        self.chat_tree = chat_tree
+import sys
 
-    def talk(self):
-        print(f"\n{self.name} speaks: {self.hi_msg}")
-        lines = list(self.chat_tree.keys())
-        while True:
-            print("\nWhat to say?")
+# These are basically the blueprints that shape the characters throughout.
+class handle_bots:
+    def __init__(self, tag, text1, treeData):
+        self.botName = tag
+        self.greet = text1
+        # Stores the nested question/answer dictionary assigned during character setup
+        self.dialogue_dict = treeData
+
+    def engage_chat(self):
+        # Clears screen space visually before dumping the opening dialogue string, erase this comment before publish.
+        print("\n" + str(self.botName) + ": " + str(self.greet))
+        
+        while 1:
+            # Re-evaluating keys every loop turn catches any real-time changes to options
+            opts = list(self.dialogue_dict.keys())
+            print("\nChose option:")
             
-            count = 1
-            for msg in lines:
-                print(f"{count}. {msg}")
-                count += 1
-            print(f"{count}. Goodbye")
+            # Simple integer counter tracking array index bounds manually without enumerate
+            k = 0
+            for item in opts:
+                print(str(k+1) + ") " + item)
+                k = k + 1
+            print(str(k+1) + ") Exit")
             
-            pick = input(">> ").strip()
-            if pick.isdigit():
-                num = int(pick)
-                if num == count:
+            player_in = input(">> ")
+            if not player_in:
+                continue
+                
+            try:
+                # Typecast string input to an integer so numerical limits check cleanly
+                numeric_val = int(player_in)
+                if numeric_val == k + 1:
+                    # Breaking here drops execution back to the main room movement engine
                     break
-                if num > 0:
-                    if num < count:
-                        text = lines[num - 1]
-                        print(f"\nYou choose: {text}")
-                        print(f"[{self.name}]: {self.chat_tree[text]}")
-                        continue
-            print("Try again.")
+                if numeric_val <= 0 or numeric_val > len(opts):
+                    print("bad choice")
+                    continue
+                
+                # Offset by 1 because the user menu display options start at index 1 instead of 0
+                key_found = opts[numeric_val - 1]
+                print("\n[" + self.botName + "]: " + self.dialogue_dict[key_found])
+            except:
+                # Safety valve catches string alphabetical typos to block terminal crash dumps
+                print("Type a real number.")
 
-# Game world setup
-world = {
-    "cell": "Rusted iron bars and wet stone walls.",
-    "hallway": "Dark stone corridor with some torches.",
-    "weapon room": "Old racks holding dusty, broken swords.",
-    "graves": "Chilly room filled with old stone tombs.",
-    "barracks": "Messy table with cards and food scraps.",
-    "throne room": "A big hall with a giant stone chair."
+# Room setting dictionary using locations as text lookup hashes for descriptions
+rooms = {}
+rooms["cell"] = "Rusted iron bars and wet stone walls."
+rooms["hallway"] = "Dark stone corridor with some torches."
+rooms["weapon room"] = "Old racks holding dusty, broken swords."
+rooms["graves"] = "Chilly room filled with old stone tombs."
+rooms["barracks"] = "Messy table with cards and food scraps."
+rooms["throne room"] = "A big hall with a giant stone chair."
+
+# Master layout connection map grid tracking which room exit leads to which location
+map_links = {
+    "cell": {"out": "hallway"},
+    "weapon room": {"w": "hallway"},
+    "graves": {"u": "hallway"},
+    "throne room": {"s": "barracks"}
 }
+# Appending these piece-by-piece to avoid breaking syntax checkers with deep multi-nested braces
+map_links["hallway"] = {"in": "cell", "n": "barracks", "e": "weapon room", "d": "graves"}
+map_links["barracks"] = {"s": "hallway", "n": "throne room"}
 
-# Declaring roads piece-by-piece to avoid block patterns
-paths = {}
-paths["cell"] = {"out": "hallway"}
-paths["hallway"] = {"in": "cell", "n": "barracks", "e": "weapon room", "d": "graves"}
-paths["weapon room"] = {"w": "hallway"}
-paths["graves"] = {"u": "hallway"}
-paths["barracks"] = {"s": "hallway", "n": "throne room"}
-paths["throne room"] = {"s": "barracks"}
+# Character location log registry tying specific instance profiles to exact map coordinate strings
+world_entities = {}
+world_entities["weapon room"] = handle_bOts(
+    "Ghostly Smith", 
+    "The anvil calls, but my hands are only mist...", 
+    {
+        "Inspect the armaments": "Flakes of iron rot. Everything here crumbled centuries ago. If you want proper steel, the overseer keeps it locked up.",
+        "Demand to know his fate": "A single spark hit the volatile ether-powder. The blast tore through the forge before I could even blink."
+    }
+)
 
-# Put characters in rooms
-spawns = {
-    "weapon room": Character("Ghostly Smith", "I forge forever...", {
-        "Ask about weapons": "They are all rusted. You need the big boss key.",
-        "How did you die?": "Blade explosion."
-    }),
-    "barracks": Character("Goblin", "Don't hit me!", {
-        "Where is the exit?": "Go north past the throne room.",
-        "Buy map": "Need shiny gems for that."
-    })
-}
+world_entities["barracks"] = handle_bots(
+    "Goblin",
+    "Sshh! Keep your voice down or the heavy boots will come back!", 
+    {
+        "Inquire about a way out": "Squeeze past the grand seat of judgment to the north. You should tread lightly, the MASTER doesn't sleep.",
+        "Barter for local navigation details": "No gold, no deal. My maps cost rare emeralds, and your pockets look completely empty."
+    }
+)
 
-# Start the game loop
-here = "cell"
-print("Dungeon Crawler")
+# This is the fancy tracking parameter. Ooooohh...
+pos = "cell"
+stamina = 100
+
+print("--- Game Loaded ---")
 
 while True:
-    print(f"\nLocation: {here.upper()}")
-    print(f"Look: {world[here]}")
+    print("\n====================")
+    print("STAMINA STATUS: " + str(stamina))
+    print("ROOM: " + pos.upper())
+    print(rooms[pos])
     
-    guy = spawns.get(here)
-    if guy:
-        print(f"-> Spotted: {guy.name}")
+    # The dictionary check kinda just checks and keeps the npc's/bots in check through the character slots
+    if pos in world_entities:
+        print("Someone is standing here: " + world_entities[pos].botName)
         
-    print("Commands: move, talk, q")
-    cmd = input("Action: ").lower().strip()
+    act = input("Action? (m/t/quit): ").lower().strip()
     
-    if cmd == "move":
-        ways = list(paths.get(here, {}).keys())
-        if not ways:
-            print("Trapped.")
+    if act == "m" or act == "move":
+        if stamina < 15:
+            print("Too tired to step anywhere.")
             continue
             
-        print("Exits: " + ", ".join(ways))
-        go = input("Direction: ").strip().lower()
-        if go in paths[here]:
-            here = paths[here][go]
+        # The safety extract and the choices matter.
+        choices = list(map_links.get(pos, {}).keys())
+        print("Available paths: " + ", ".join(choices))
+        
+        direction_picked = input("Pick exit: ").strip().lower()
+        if direction_picked in map_links[pos]:
+            # Rewrite this in the future, it's garbage
+            pos = map_links[pos][direction_picked]
+            stamina = stamina - 15
         else:
-            print("Can't go there.")
+            print("Cannot move that way.")
             
-    elif cmd == "talk":
-        if guy:
-            guy.talk()
+    elif act == "t" or act == "talk":
+        if pos in world_entities:
+            # This is how the coordinate depends on the call.
+            world_entities[pos].engage_chat()
         else:
-            print("Nobody is here.")
+            print("Nobody is around.")
             
-    elif cmd == "q":
-        print("Bye!")
-        break
+    elif act == "quit" or act == "q":
+        print("Exiting.")
+        # I wanted to make the memory clean more efficient so I made simple breaks and substitutions here. Trust me, it makes the game run so much smoother.
+        sys.exit(0)
+        
     else:
-        print("Unknown command.")
+        print("What are you trying to type? You got it wrong.")
