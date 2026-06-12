@@ -67,7 +67,7 @@ map_links["barracks"] = {"s": "hallway", "n": "throne room"}
 
 # Character location log registry tying specific instance profiles to exact map coordinate strings
 world_entities = {}
-world_entities["weapon room"] = handle_bOts(
+world_entities["weapon room"] = handle_bots(
     "Ghostly Smith", 
     "The anvil calls, but my hands are only mist...", 
     {
