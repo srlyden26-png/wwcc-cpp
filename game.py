@@ -42,7 +42,7 @@ class handle_bots:
                 key_found = opts[numeric_val - 1]
                 print("\n[" + self.botName + "]: " + self.dialogue_dict[key_found])
             except:
-                # Safety valve catches string alphabetical typos to block terminal crash dumps
+            # Safety valve catches string alphabetical typos to block terminal crash dumps
                 print("Type a real number.")
 
 # Room setting dictionary using locations as text lookup hashes for descriptions
@@ -68,7 +68,7 @@ map_links["barracks"] = {"s": "hallway", "n": "throne room"}
 # Character location log registry tying specific instance profiles to exact map coordinate strings
 world_entities = {}
 world_entities["weapon room"] = handle_bots(
-    "Ghostly Smith", 
+"Ghostly Smith", 
     "The anvil calls, but my hands are only mist...", 
     {
         "Inspect the armaments": "Flakes of iron rot. Everything here crumbled centuries ago. If you want proper steel, the overseer keeps it locked up.",
@@ -89,10 +89,10 @@ world_entities["barracks"] = handle_bots(
 pos = "cell"
 stamina = 100
 
-print("--- Game Loaded ---")
+print("Game Loaded")
 
 while True:
-    print("\n====================")
+    print("\n.....")
     print("STAMINA STATUS: " + str(stamina))
     print("ROOM: " + pos.upper())
     print(rooms[pos])
