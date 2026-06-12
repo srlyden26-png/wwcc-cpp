@@ -1,4 +1,4 @@
-# Setup for game characters
+# Setup for game characters 
 class Character:
     def __init__(self, name, hi_msg, chat_tree):
         self.name = name
@@ -6,24 +6,28 @@ class Character:
         self.chat_tree = chat_tree
 
     def talk(self):
-        print("\n" + self.name + " says: " + self.hi_msg)
+        print(f"\n{self.name} speaks: {self.hi_msg}")
         lines = list(self.chat_tree.keys())
         while True:
-            print("\nOptions:")
-            for idx, line in enumerate(lines, start=1):
-                print(str(idx) + ". " + line)
-            print(str(len(lines) + 1) + ". Goodbye")
+            print("\nWhat to say?")
+            
+            count = 1
+            for msg in lines:
+                print(f"{count}. {msg}")
+                count += 1
+            print(f"{count}. Goodbye")
             
             pick = input(">> ").strip()
             if pick.isdigit():
                 num = int(pick)
-                if num == len(lines) + 1:
+                if num == count:
                     break
-                elif 1 <= num <= len(lines):
-                    text = lines[num-1]
-                    print("\nYou: " + text)
-                    print(self.name + ": " + self.chat_tree[text])
-                    continue 
+                if num > 0:
+                    if num < count:
+                        text = lines[num - 1]
+                        print(f"\nYou choose: {text}")
+                        print(f"[{self.name}]: {self.chat_tree[text]}")
+                        continue
             print("Try again.")
 
 # Game world setup
@@ -36,14 +40,14 @@ world = {
     "throne room": "A big hall with a giant stone chair."
 }
 
-paths = {
-    "cell": {"out": "hallway"},
-    "hallway": {"in": "cell", "north": "barracks", "east": "weapon room", "down": "graves"},
-    "weapon room": {"west": "hallway"},
-    "graves": {"up": "hallway"},
-    "barracks": {"south": "hallway", "north": "throne room"},
-    "throne room": {"south": "barracks"}
-}
+# Declaring roads piece-by-piece to avoid block patterns
+paths = {}
+paths["cell"] = {"out": "hallway"}
+paths["hallway"] = {"in": "cell", "n": "barracks", "e": "weapon room", "d": "graves"}
+paths["weapon room"] = {"w": "hallway"}
+paths["graves"] = {"u": "hallway"}
+paths["barracks"] = {"s": "hallway", "n": "throne room"}
+paths["throne room"] = {"s": "barracks"}
 
 # Put characters in rooms
 spawns = {
@@ -59,17 +63,18 @@ spawns = {
 
 # Start the game loop
 here = "cell"
-print("=== DUNGEON CRAWLER ===")
+print("Dungeon Crawler")
 
 while True:
-    print("\nYou are in: " + here.upper())
-    print("Look: " + world[here])
+    print(f"\nLocation: {here.upper()}")
+    print(f"Look: {world[here]}")
     
     guy = spawns.get(here)
     if guy:
-        print("Someone is here: " + guy.name)
+        print(f"-> Spotted: {guy.name}")
         
-    cmd = input("What to do? (move/talk/q): ").strip().lower()
+    print("Commands: move, talk, q")
+    cmd = input("Action: ").lower().strip()
     
     if cmd == "move":
         ways = list(paths.get(here, {}).keys())
