@@ -1,103 +1,97 @@
-# ==============================================================================
-# TEXT-BASED ADVENTURE GAME - DUNGEON EDITION
-# ==============================================================================
-class NPC:
-    def __init__(self, name, greeting, dialogue):
-        self.name, self.greeting, self.dialogue = name, greeting, dialogue
+# Setup for game characters
+class Character:
+    def __init__(self, name, hi_msg, chat_tree):
+        self.name = name
+        self.hi_msg = hi_msg
+        self.chat_tree = chat_tree
 
-    def interact(self):
-        print(f"\n[{self.name}]: {self.greeting}")
-        options = list(self.dialogue.keys())
+    def talk(self):
+        print("\n" + self.name + " says: " + self.hi_msg)
+        lines = list(self.chat_tree.keys())
         while True:
-            print("\nChoose:")
-            for i, option in enumerate(options, start=1):
-                print(f"{i}. {option}")
-            print(f"{len(options) + 1}. Leave")
+            print("\nOptions:")
+            for idx, line in enumerate(lines, start=1):
+                print(str(idx) + ". " + line)
+            print(str(len(lines) + 1) + ". Goodbye")
             
-            choice = input(">> ").strip()
-            if choice.isdigit():
-                c_num = int(choice)
-                if c_num == len(options) + 1:
+            pick = input(">> ").strip()
+            if pick.isdigit():
+                num = int(pick)
+                if num == len(lines) + 1:
                     break
-                elif 1 <= c_num <= len(options):
-                    chosen_option = options[c_num-1]
-                    print(f"\nYou: \"{chosen_option}\"\n[{self.name}]: {self.dialogue[chosen_option]}")
+                elif 1 <= num <= len(lines):
+                    text = lines[num-1]
+                    print("\nYou: " + text)
+                    print(self.name + ": " + self.chat_tree[text])
                     continue 
-            print("Invalid choice.")
+            print("Try again.")
 
-# ==============================================================================
-# DATA CONFIGURATION: DUNGEON MAP & ROOMS
-# ==============================================================================
-rooms = {
-    "prison cell": "A damp, stone cell. The iron bars are rusted through.",
-    "dark corridor": "A long hallway lit by flickering torches.",
-    "armory": "Racks of broken swords and dusty shields line the walls.",
-    "crypt": "Cold stone tombs surround you. A chill fills the air.",
-    "guard room": "A messy room with a wooden table, playing cards, and bone remnants.",
-    "boss chamber": "A massive room with a towering stone throne."
+# Game world setup
+world = {
+    "cell": "Rusted iron bars and wet stone walls.",
+    "hallway": "Dark stone corridor with some torches.",
+    "weapon room": "Old racks holding dusty, broken swords.",
+    "graves": "Chilly room filled with old stone tombs.",
+    "barracks": "Messy table with cards and food scraps.",
+    "throne room": "A big hall with a giant stone chair."
 }
 
-map_data = {
-    "prison cell": {"out": "dark corridor"},
-    "dark corridor": {"in": "prison cell", "north": "guard room", "east": "armory", "down": "crypt"},
-    "armory": {"west": "dark corridor"},
-    "crypt": {"up": "dark corridor"},
-    "guard room": {"south": "dark corridor", "north": "boss chamber"},
-    "boss chamber": {"south": "guard room"}
+paths = {
+    "cell": {"out": "hallway"},
+    "hallway": {"in": "cell", "north": "barracks", "east": "weapon room", "down": "graves"},
+    "weapon room": {"west": "hallway"},
+    "graves": {"up": "hallway"},
+    "barracks": {"south": "hallway", "north": "throne room"},
+    "throne room": {"south": "barracks"}
 }
 
-# ==============================================================================
-# NPC CONFIGURATION (Linked to specific rooms)
-# ==============================================================================
-npcs_in_rooms = {
-    "armory": NPC("Ghostly Smith", "I forge for eternity...", {
-        "Ask about weapons": "Everything here is rusted. You need the Boss's key.",
-        "How did you die?": "An accident with a dragon blade."
+# Put characters in rooms
+spawns = {
+    "weapon room": Character("Ghostly Smith", "I forge forever...", {
+        "Ask about weapons": "They are all rusted. You need the big boss key.",
+        "How did you die?": "Blade explosion."
     }),
-    "guard room": NPC("Captured Goblin", "Don't hurt me! I just work here!", {
-        "Where is the exit?": "The exit is past the Boss Chamber, to the north!",
-        "Buy dynamic map": "I only trade in shiny gems, which you don't have."
+    "barracks": Character("Goblin", "Don't hit me!", {
+        "Where is the exit?": "Go north past the throne room.",
+        "Buy map": "Need shiny gems for that."
     })
 }
 
-# ==============================================================================
-# MAIN GAME LOOP
-# ==============================================================================
-location = "prison cell"
+# Start the game loop
+here = "cell"
+print("=== DUNGEON CRAWLER ===")
 
-print("--- DUNGEON CRAWLER TEXT ADVENTURE ---")
 while True:
-    print(f"\nLocation: {location.title()}")
-    print(f"Description: {rooms[location]}")
+    print("\nYou are in: " + here.upper())
+    print("Look: " + world[here])
     
-    # Check if there is an NPC in this room
-    current_npc = npns_in_rooms.get(location) if 'npns_in_rooms' in locals() else npcs_in_rooms.get(location)
-    if current_npc:
-        print(f"You see someone here: {current_npc.name}")
+    guy = spawns.get(here)
+    if guy:
+        print("Someone is here: " + guy.name)
         
-    action = input("Move/Interact/Q: ").strip().lower()
+    cmd = input("What to do? (move/talk/q): ").strip().lower()
     
-    if action == "move":
-        dirs = list(map_data.get(location, {}).keys())
-        if not dirs:
-            print("You are completely trapped!")
+    if cmd == "move":
+        ways = list(paths.get(here, {}).keys())
+        if not ways:
+            print("Trapped.")
             continue
             
-        print("Directions you can go:", ", ".join(dirs))
-        d = input("Where? ").strip().lower()
-        if d in map_data[location]:
-            location = map_data[location][d]
+        print("Exits: " + ", ".join(ways))
+        go = input("Direction: ").strip().lower()
+        if go in paths[here]:
+            here = paths[here][go]
         else:
-            print("Cannot go that way.")
+            print("Can't go there.")
             
-    elif action == "interact":
-        if current_npc:
-            current_npc.interact()
+    elif cmd == "talk":
+        if guy:
+            guy.talk()
         else:
-            print("There is no one here to talk to.")
+            print("Nobody is here.")
             
-    elif action == "q":
-        print("Thanks for playing!")
+    elif cmd == "q":
+        print("Bye!")
         break
     else:
-        print("Invalid action.")
+        print("Unknown command.")
