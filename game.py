@@ -118,7 +118,7 @@ while True:
             pos = map_links[pos][direction_picked]
             stamina = stamina - 15
         else:
-            print("Cannot move that way.")
+            print("Can't move that way.")
             
     elif act == "t" or act == "talk":
         if pos in world_entities:
@@ -133,4 +133,4 @@ while True:
         sys.exit(0)
         
     else:
-        print("What are you trying to type? You got it wrong.")
+        print("What are you trying to type? You got it wrong. Also, Hello World! Sorry. Nostalgia.")
